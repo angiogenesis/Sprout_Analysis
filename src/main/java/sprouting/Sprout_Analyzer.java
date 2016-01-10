@@ -49,8 +49,8 @@ import java.util.Vector;
 
 import morphology.BinaryReconstruct_;
 
-import skeleton_analysis.AnalyzeSkeleton_;
-import skeleton_analysis.SkeletonResult;
+import sc.fiji.analyzeSkeleton.AnalyzeSkeleton_;
+import sc.fiji.analyzeSkeleton.SkeletonResult;
 
 /**
  * Sprout segmentation plugin
