@@ -8,82 +8,15 @@
 	<parent>
 		<groupId>net.imagej</groupId>
 		<artifactId>pom-imagej</artifactId>
-		<version>2.53</version>
+		<version>5.0</version>
 	</parent>
 
 	<groupId>angiogenesis</groupId>
 	<artifactId>Sprout_Analysis</artifactId>
-	<version>0.3.0</version>
+	<version>0.3.1-SNAPSHOT</version>
 
 	<name>plugins/Sprout_Analysis.jar</name>
 	<description>A Maven project implementing analysis of angiogenic sprouts</description>
-
-	<dependencies>
-		<dependency>
-			<groupId>net.imagej</groupId>
-			<artifactId>ij</artifactId>
-			<version>${imagej1.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>sc.fiji</groupId>
-			<artifactId>AnalyzeSkeleton_</artifactId>
-			<version>2.0.2</version>
-		</dependency>
-	</dependencies>
-
-	<build>
-		<resources>
-			<resource>
-				<directory>${basedir}/src/main/resources</directory>
-			</resource>
-			<resource>
-				<directory>${project.build.sourceDirectory}</directory>
-			</resource>
-		</resources>
-		<testResources>
-			<testResource>
-				<directory>${basedir}/src/test/resources</directory>
-			</testResource>
-			<testResource>
-				<directory>${project.build.testSourceDirectory}</directory>
-			</testResource>
-		</testResources>
-		<plugins>
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>exec-maven-plugin</artifactId>
-				<executions>
-					<execution>
-						<goals>
-							<goal>java</goal>
-						</goals>
-					</execution>
-				</executions>
-				<configuration>
-					<mainClass>sprouting.Sprout_Analyzer</mainClass>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-javadoc-plugin</artifactId>
-				<version>2.9.1</version>
-				<executions>
-					<execution>
-						<id>attach-javadocs</id>
-						<goals>
-							<goal>jar</goal>
-						</goals>
-					</execution>
-				</executions>
-				<configuration>
-					<links>
-						<link>http://jenkins.imagej.net/job/ImageJ1-javadoc/javadoc</link>
-					</links>
-					<detectLinks/>
-				</configuration>
-			</plugin>
-		</plugins>
-	</build>
 
 	<developers>
 		<developer>
@@ -101,23 +34,32 @@
 		</developer>
 	</developers>
 
-	<!-- NB: for project parent -->
+	<properties>
+		<main-class>sprouting.Sprout_Analyzer</main-class>
+	</properties>
+
 	<repositories>
 		<repository>
 			<id>imagej.releases</id>
 			<url>http://maven.imagej.net/content/repositories/releases</url>
 		</repository>
-		<repository>
-			<id>imagej.snapshots</id>
-			<url>http://maven.imagej.net/content/repositories/snapshots</url>
-		</repository>
 	</repositories>
 
 	<scm>
-		<connection>scm:git:git://github.com/angiogenesis/sprout_analysis</connection>
-		<developerConnection>scm:git:git@github.com:angiogenesis/sprout_analysis</developerConnection>
+		<connection>scm:git:git://github.com/angiogenesis/Sprout_Analysis</connection>
 		<tag>HEAD</tag>
-		<url>https://github.com/angiogenesis/sprout_analysis</url>
+		<url>https://github.com/angiogenesis/Sprout_Analysis</url>
 	</scm>
+	<dependencies>
+		<dependency>
+			<groupId>net.imagej</groupId>
+			<artifactId>ij</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>sc.fiji</groupId>
+			<artifactId>AnalyzeSkeleton_</artifactId>
+			<version>2.0.2</version>
+		</dependency>
+	</dependencies>
 
 </project>
