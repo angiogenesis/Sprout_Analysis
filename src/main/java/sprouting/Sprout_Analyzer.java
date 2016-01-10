@@ -3,10 +3,9 @@ package sprouting;
 /**
  * Sprout segmentation plugin for Fiji/ImageJ
  * 
- * @version 0.3.0
- * 
- * (C) 2012-2014 Jan Eglinger
+ * (C) 2012-2016 Jan Eglinger
  * Heinrich-Heine University Düsseldorf
+ * Friedrich Miescher Institute for Biomedical Research, Basel
  */
 
 import ij.IJ;
