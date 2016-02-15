@@ -882,7 +882,7 @@ public class Sprout_Analyzer implements ExtendedPlugInFilter, DialogListener {
 		int[] branchNumbers = sr.getBranches();
 		int[] junctionNumbers = sr.getJunctions();
 		totalLength = 0;
-		int totalJunctions = 0;
+		double totalJunctions = 0;
 		if (branchNumbers != null) {
 			for (int i = 0; i < branchNumbers.length; i++) {
 				totalLength += branchNumbers[i] * branchLengths[i];
