@@ -13,7 +13,7 @@
 
 	<groupId>angiogenesis</groupId>
 	<artifactId>Sprout_Analysis</artifactId>
-	<version>1.0.0</version>
+	<version>1.0.1-SNAPSHOT</version>
 
 	<name>plugins/Sprout_Analysis.jar</name>
 	<description>A Maven project implementing analysis of angiogenic sprouts</description>
