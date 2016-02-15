@@ -13,15 +13,13 @@ import ij.ImagePlus;
 import ij.ImageStack;
 import ij.Prefs;
 import ij.WindowManager;
-
 import ij.gui.DialogListener;
 import ij.gui.GenericDialog;
 import ij.gui.ImageRoi;
 import ij.gui.Overlay;
-
 import ij.measure.Calibration;
+import ij.measure.Measurements;
 import ij.measure.ResultsTable;
-
 import ij.plugin.Duplicator;
 import ij.plugin.ImageCalculator;
 import ij.plugin.Thresholder;
@@ -32,23 +30,17 @@ import ij.plugin.filter.MaximumFinder;
 import ij.plugin.filter.ParticleAnalyzer;
 import ij.plugin.filter.PlugInFilterRunner;
 import ij.plugin.filter.RankFilters;
-import ij.plugin.frame.Recorder;
-
 import ij.process.AutoThresholder;
 import ij.process.FloodFiller;
 import ij.process.ImageProcessor;
 import ij.process.LUT;
-
 import java.awt.AWTEvent;
 import java.awt.Choice;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Label;
-
 import java.util.Vector;
-
 import morphology.BinaryReconstruct_;
-
 import sc.fiji.analyzeSkeleton.AnalyzeSkeleton_;
 import sc.fiji.analyzeSkeleton.SkeletonResult;
 
@@ -61,15 +53,14 @@ public class Sprout_Analyzer implements ExtendedPlugInFilter, DialogListener {
 	/*
 	 * Private variables
 	 */
-	private static final boolean PERICYTES = false;
 	private static final String PREF_KEY = "sprout_analyzer.";
 	private static final double OVERLAY_OPACITY = 0.5;
 	private static final int NO_DIALOG = 0, CHANNEL_DIALOG = 1, BEAD_DIALOG = 2, SPROUT_DIALOG = 3, NUCLEUS_DIALOG = 4, PERICYTE_DIALOG = 5, PERICYTE_AREA_DIALOG = 6;
 	private static final int NUM_BEADS = 0, NUM_SPROUTS = 2, NUM_CELLS = 4, TOT_AREA = 6, TOT_LENGTH = 8, BRANCHING = 10, AVG_LENGTH = 1, AVG_WIDTH = 3, AVG_DENSITY = 5, NUM_EC = 7, PERI_AREA = 9; // custom order for param dialog
 	private ImagePlus imp;
 	private boolean is16Bit;
+	private int nPasses;
 	private int flags = DOES_8G | DOES_16 | DOES_32 | NO_CHANGES;
-	private int nPasses = 0;
 	private int dialog = NO_DIALOG;
 	private Label messageArea;
 	private ImagePlus bead_imp, sprout_imp, nuc_imp;
@@ -96,7 +87,7 @@ public class Sprout_Analyzer implements ExtendedPlugInFilter, DialogListener {
 
 	/* Sprout recognition */
 	private String thr_sprout;
-	private double blur_sprout, min_plexus_area, min_sprout_area, max_hole_area, min_cluster_size;
+	private double blur_sprout, min_plexus_area, min_sprout_area, min_cluster_size;
 	private boolean do_recover = false;
 	private boolean do_exclude_borders;
 
@@ -118,7 +109,7 @@ public class Sprout_Analyzer implements ExtendedPlugInFilter, DialogListener {
 
 	/*  Results   */
 	private int num_beads, num_sprouts, num_nuc, num_peri;
-	private double sprout_area, avg_sprout_length, avg_sprout_width, cell_density, totalLength, peri_area, junctionsPerSprout;
+	private double sprout_area, avg_sprout_length, totalLength, peri_area, junctionsPerSprout;
 
 	/* Overridden functions */
 
@@ -585,7 +576,7 @@ public class Sprout_Analyzer implements ExtendedPlugInFilter, DialogListener {
 		// --- Total sprout area ---      <= sprout_imp
 		ResultsTable rt = new ResultsTable();
 		IJ.setThreshold(sprout_imp, 1, 255);
-		Analyzer an = new Analyzer(sprout_imp, Analyzer.AREA + Analyzer.LIMIT, rt);  
+		Analyzer an = new Analyzer(sprout_imp, Measurements.AREA + Measurements.LIMIT, rt);  
 		an.measure();
 		sprout_area = rt.getValueAsDouble(rt.getLastColumn(), rt.getCounter()-1);
 		// --- Number of sprouts --- and --- Total length ---
@@ -626,8 +617,8 @@ public class Sprout_Analyzer implements ExtendedPlugInFilter, DialogListener {
 		if (quantify[AVG_DENSITY]) result.addValue("Cell density (1/" + cal.getUnits() + "\u00B2)", num_nuc / sprout_area);
 		if (quantify[NUM_EC]) {
 			if (quant_cell_numbers) {
-				result.addValue("Number of ECs", (int) num_nuc - num_peri);
-				result.addValue("Number of Pericytes", (int) num_peri);
+				result.addValue("Number of ECs", num_nuc - num_peri);
+				result.addValue("Number of Pericytes", num_peri);
 			}
 			if (quant_cell_fraction) result.addValue("Pericytes per total cells", (double) num_peri / num_nuc);
 		}
@@ -776,7 +767,7 @@ public class Sprout_Analyzer implements ExtendedPlugInFilter, DialogListener {
 			ImageCalculator ic = new ImageCalculator();
 			ic.run("OR", output, beads);
 			ResultsTable rt2 = new ResultsTable();
-			ParticleAnalyzer pa2 = new ParticleAnalyzer(ParticleAnalyzer.SHOW_NONE | ParticleAnalyzer.RECORD_STARTS, ParticleAnalyzer.CENTER_OF_MASS, rt2, 0, Double.POSITIVE_INFINITY);
+			ParticleAnalyzer pa2 = new ParticleAnalyzer(ParticleAnalyzer.SHOW_NONE | ParticleAnalyzer.RECORD_STARTS, Measurements.CENTER_OF_MASS, rt2, 0, Double.POSITIVE_INFINITY);
 			pa2.analyze(beads);
 			int nResults = rt2.getCounter();
 			ImageProcessor ip = output.getProcessor();
@@ -884,7 +875,7 @@ public class Sprout_Analyzer implements ExtendedPlugInFilter, DialogListener {
 		ic.run("Subtract", sprout_skel, beads);
 		/* determine average network length per sprout */
 		AnalyzeSkeleton_ skel = new AnalyzeSkeleton_();
-		skel.calculateShortestPath = true;
+		AnalyzeSkeleton_.calculateShortestPath = true;
 		skel.setup("", sprout_skel);
 		SkeletonResult sr = skel.run(AnalyzeSkeleton_.NONE, false, true, null, true, false);
 		double[] branchLengths = sr.getAverageBranchLength();
@@ -991,7 +982,7 @@ public class Sprout_Analyzer implements ExtendedPlugInFilter, DialogListener {
 	private Double measureArea(ImagePlus binaryImp) {
 		ResultsTable rt = new ResultsTable();
 		IJ.setThreshold(binaryImp, 1, 255);
-		Analyzer an = new Analyzer(binaryImp, Analyzer.AREA + Analyzer.LIMIT, rt);  
+		Analyzer an = new Analyzer(binaryImp, Measurements.AREA + Measurements.LIMIT, rt);  
 		an.measure();
 		return rt.getValueAsDouble(rt.getLastColumn(), rt.getCounter()-1);
 		
@@ -1015,8 +1006,10 @@ public class Sprout_Analyzer implements ExtendedPlugInFilter, DialogListener {
 	/**
 	 * Transform an ImageProcessor into an Overlay with a given color and opacity
 	 *
-	 * @param ip The ImageProcessor that should serve as overlay
-	 * @param color The color to create the Overlay's LUT
+	 * @param ip1 The ImageProcessor that should serve as first overlay
+	 * @param ip2 The ImageProcessor that should serve as second overlay
+	 * @param color1 The color to create the first Overlay's LUT
+	 * @param color2 The color to create the second Overlay's LUT
 	 * @param opacity The opacity of the overlay
 	 */
 	private Overlay makeDoubleOverlay(ImageProcessor ip1, ImageProcessor ip2, Color color1, Color color2, Double opacity) {
