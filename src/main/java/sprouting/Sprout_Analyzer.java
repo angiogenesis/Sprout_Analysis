@@ -65,7 +65,7 @@ public class Sprout_Analyzer implements ExtendedPlugInFilter, DialogListener {
 	private static final String PREF_KEY = "sprout_analyzer.";
 	private static final double OVERLAY_OPACITY = 0.5;
 	private static final int NO_DIALOG = 0, CHANNEL_DIALOG = 1, BEAD_DIALOG = 2, SPROUT_DIALOG = 3, NUCLEUS_DIALOG = 4, PERICYTE_DIALOG = 5, PERICYTE_AREA_DIALOG = 6;
-	private static final int NUM_BEADS = 0, NUM_SPROUTS = 2, NUM_CELLS = 4, TOT_AREA = 6, TOT_LENGTH = 8, AVG_LENGTH = 1, AVG_WIDTH = 3, AVG_DENSITY = 5, NUM_EC = 7, PERI_AREA = 9; // custom order for param dialog
+	private static final int NUM_BEADS = 0, NUM_SPROUTS = 2, NUM_CELLS = 4, TOT_AREA = 6, TOT_LENGTH = 8, BRANCHING = 10, AVG_LENGTH = 1, AVG_WIDTH = 3, AVG_DENSITY = 5, NUM_EC = 7, PERI_AREA = 9; // custom order for param dialog
 	private ImagePlus imp;
 	private boolean is16Bit;
 	private int flags = DOES_8G | DOES_16 | DOES_32 | NO_CHANGES;
@@ -118,7 +118,7 @@ public class Sprout_Analyzer implements ExtendedPlugInFilter, DialogListener {
 
 	/*  Results   */
 	private int num_beads, num_sprouts, num_nuc, num_peri;
-	private double sprout_area, avg_sprout_length, avg_sprout_width, cell_density, totalLength, peri_area;
+	private double sprout_area, avg_sprout_length, avg_sprout_width, cell_density, totalLength, peri_area, junctionsPerSprout;
 
 	/* Overridden functions */
 
@@ -172,7 +172,8 @@ public class Sprout_Analyzer implements ExtendedPlugInFilter, DialogListener {
 			"Number_of_sprouts",		"Average_sprout_width",
 			"Number_of_cells",			"Cell_density",
 			"Total_sprout_area",		"Numbers of ECs/pericytes",
-			"Total_network_length",		"Pericyte_coverage (%area)"
+			"Total_network_length",		"Pericyte_coverage (%area)",
+			"Branching_level"
 		};
 
 		// Dialog #1
@@ -180,7 +181,7 @@ public class Sprout_Analyzer implements ExtendedPlugInFilter, DialogListener {
 		GenericDialog gd1 = new GenericDialog("Sprout Analyzer - Configuration");
 		gd1.setInsets(5, 0, 0);
 		gd1.addMessage("Parameters", bold);
-		gd1.addCheckboxGroup(5, 2, labels, quantify);
+		gd1.addCheckboxGroup(6, 2, labels, quantify);
 		
 		gd1.setInsets(10, 0, 0);
 		gd1.addMessage("Channels", bold);
@@ -318,6 +319,7 @@ public class Sprout_Analyzer implements ExtendedPlugInFilter, DialogListener {
 				quantify[NUM_EC] = gd.getNextBoolean();
 				quantify[TOT_LENGTH] = gd.getNextBoolean();
 				quantify[PERI_AREA] = gd.getNextBoolean();
+				quantify[BRANCHING] = gd.getNextBoolean();
 				//use_nuc_mask = gd.getNextBoolean();
 				ch_bead = gd.getNextChoiceIndex() + 1;
 				ch_sprout = gd.getNextChoiceIndex() + 1;
@@ -501,7 +503,7 @@ public class Sprout_Analyzer implements ExtendedPlugInFilter, DialogListener {
 		quant_peri_fraction =	Prefs.get(PREF_KEY + "quantify_pericyte_fraction", true);
 
 		/* Output */
-		quantify = new boolean[10];
+		quantify = new boolean[11];
 		quantify[NUM_BEADS] =	Prefs.get(PREF_KEY + "number_of_beads", true);
 		quantify[NUM_SPROUTS] =	Prefs.get(PREF_KEY + "number_of_sprouts", true);
 		quantify[TOT_AREA] =	Prefs.get(PREF_KEY + "total_sprout_area", true);
@@ -512,6 +514,7 @@ public class Sprout_Analyzer implements ExtendedPlugInFilter, DialogListener {
 		quantify[AVG_DENSITY] =	Prefs.get(PREF_KEY + "cell_density", true);
 		quantify[NUM_EC] =		Prefs.get(PREF_KEY + "ec_number", false);
 		quantify[PERI_AREA] =	Prefs.get(PREF_KEY + "pericyte_coverage", false);
+		quantify[BRANCHING] =   Prefs.get(PREF_KEY + "branching", true);
 		/* for (int j = 0; j <= quantify.length; j++) {
 			IJ.log("Pos: " + Integer.toString(j) + " " + Boolean.toString(quantify[j]));
 		} */
@@ -551,6 +554,7 @@ public class Sprout_Analyzer implements ExtendedPlugInFilter, DialogListener {
 		Prefs.set(PREF_KEY + "number_of_cells", quantify[NUM_CELLS]);
 		Prefs.set(PREF_KEY + "average_sprout_length", quantify[AVG_LENGTH]);
 		Prefs.set(PREF_KEY + "average_sprout_width", quantify[AVG_WIDTH]);
+		Prefs.set(PREF_KEY + "branching", quantify[BRANCHING]);
 		Prefs.set(PREF_KEY + "cell_density", quantify[AVG_DENSITY]);
 		Prefs.set(PREF_KEY + "ec_number", quantify[NUM_EC]);
 		Prefs.set(PREF_KEY + "pericyte_coverage", quantify[PERI_AREA]);
@@ -618,6 +622,7 @@ public class Sprout_Analyzer implements ExtendedPlugInFilter, DialogListener {
 		if (quantify[TOT_LENGTH]) result.addValue("Total network length (" + cal.getUnits() + ")", totalLength);
 		if (quantify[AVG_LENGTH]) result.addValue("Average sprout length (" + cal.getUnits() + ")", avg_sprout_length);
 		if (quantify[AVG_WIDTH]) result.addValue("Average sprout width (" + cal.getUnits() + ")", sprout_area / totalLength);
+		if (quantify[BRANCHING]) result.addValue("Average junctions per sprout", junctionsPerSprout);
 		if (quantify[AVG_DENSITY]) result.addValue("Cell density (1/" + cal.getUnits() + "\u00B2)", num_nuc / sprout_area);
 		if (quantify[NUM_EC]) {
 			if (quant_cell_numbers) {
@@ -884,14 +889,18 @@ public class Sprout_Analyzer implements ExtendedPlugInFilter, DialogListener {
 		SkeletonResult sr = skel.run(AnalyzeSkeleton_.NONE, false, true, null, true, false);
 		double[] branchLengths = sr.getAverageBranchLength();
 		int[] branchNumbers = sr.getBranches();
+		int[] junctionNumbers = sr.getJunctions();
 		totalLength = 0;
+		int totalJunctions = 0;
 		if (branchNumbers != null) {
 			for (int i = 0; i < branchNumbers.length; i++) {
 				totalLength += branchNumbers[i] * branchLengths[i];
+				totalJunctions += junctionNumbers[i];
 			}
 		}
 		/* maybe count the longest_shortest_paths here, instead of total network length */
 		avg_sprout_length = totalLength / num_sprouts;
+		junctionsPerSprout = totalJunctions / num_sprouts;
 		return true; // TODO: some error capturing here -> return false
 	}
 
