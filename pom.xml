@@ -76,6 +76,7 @@
 		<license.licenseName>mit</license.licenseName>
 		<license.copyrightOwners>Heinrich Heine University Düsseldorf</license.copyrightOwners>
 		<license.projectName>Sprout Morphology plugin for ImageJ</license.projectName>
+		<license.excludes>**/morphology/**</license.excludes>
 
 		<!-- NB: Deploy releases to the SciJava Maven repository. -->
 		<releaseProfiles>deploy-to-scijava</releaseProfiles>
